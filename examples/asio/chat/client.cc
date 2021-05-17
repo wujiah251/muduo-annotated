@@ -14,10 +14,10 @@ using namespace muduo::net;
 
 class ChatClient : noncopyable
 {
- public:
-  ChatClient(EventLoop* loop, const InetAddress& serverAddr)
-    : client_(loop, serverAddr, "ChatClient"),
-      codec_(std::bind(&ChatClient::onStringMessage, this, _1, _2, _3))
+public:
+  ChatClient(EventLoop *loop, const InetAddress &serverAddr)
+      : client_(loop, serverAddr, "ChatClient"),
+        codec_(std::bind(&ChatClient::onStringMessage, this, _1, _2, _3))
   {
     client_.setConnectionCallback(
         std::bind(&ChatClient::onConnection, this, _1));
@@ -36,8 +36,9 @@ class ChatClient : noncopyable
     client_.disconnect();
   }
 
-  void write(const StringPiece& message)
+  void write(const StringPiece &message)
   {
+    // 加锁保护共享指针
     MutexLockGuard lock(mutex_);
     if (connection_)
     {
@@ -45,8 +46,8 @@ class ChatClient : noncopyable
     }
   }
 
- private:
-  void onConnection(const TcpConnectionPtr& conn)
+private:
+  void onConnection(const TcpConnectionPtr &conn)
   {
     LOG_INFO << conn->localAddress().toIpPort() << " -> "
              << conn->peerAddress().toIpPort() << " is "
@@ -63,8 +64,8 @@ class ChatClient : noncopyable
     }
   }
 
-  void onStringMessage(const TcpConnectionPtr&,
-                       const string& message,
+  void onStringMessage(const TcpConnectionPtr &,
+                       const string &message,
                        Timestamp)
   {
     printf("<<< %s\n", message.c_str());
@@ -76,7 +77,7 @@ class ChatClient : noncopyable
   TcpConnectionPtr connection_ GUARDED_BY(mutex_);
 };
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
   LOG_INFO << "pid = " << getpid();
   if (argc > 2)
@@ -93,11 +94,10 @@ int main(int argc, char* argv[])
       client.write(line);
     }
     client.disconnect();
-    CurrentThread::sleepUsec(1000*1000);  // wait for disconnect, see ace/logging/client.cc
+    CurrentThread::sleepUsec(1000 * 1000); // wait for disconnect, see ace/logging/client.cc
   }
   else
   {
     printf("Usage: %s host_ip port\n", argv[0]);
   }
 }
-
