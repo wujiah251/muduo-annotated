@@ -9,18 +9,19 @@
 using namespace muduo;
 using namespace muduo::net;
 
-
-EchoServer::EchoServer(EventLoop* loop,
-                       const InetAddress& listenAddr,
+EchoServer::EchoServer(EventLoop *loop,
+                       const InetAddress &listenAddr,
                        int idleSeconds)
-  : server_(loop, listenAddr, "EchoServer"),
-    connectionBuckets_(idleSeconds)
+    : server_(loop, listenAddr, "EchoServer"),
+      connectionBuckets_(idleSeconds)
 {
   server_.setConnectionCallback(
       std::bind(&EchoServer::onConnection, this, _1));
   server_.setMessageCallback(
       std::bind(&EchoServer::onMessage, this, _1, _2, _3));
+  // 注册每秒的回调事件
   loop->runEvery(1.0, std::bind(&EchoServer::onTimer, this));
+  // 时间轮
   connectionBuckets_.resize(idleSeconds);
   dumpConnectionBuckets();
 }
@@ -30,7 +31,7 @@ void EchoServer::start()
   server_.start();
 }
 
-void EchoServer::onConnection(const TcpConnectionPtr& conn)
+void EchoServer::onConnection(const TcpConnectionPtr &conn)
 {
   LOG_INFO << "EchoServer - " << conn->peerAddress().toIpPort() << " -> "
            << conn->localAddress().toIpPort() << " is "
@@ -52,8 +53,8 @@ void EchoServer::onConnection(const TcpConnectionPtr& conn)
   }
 }
 
-void EchoServer::onMessage(const TcpConnectionPtr& conn,
-                           Buffer* buf,
+void EchoServer::onMessage(const TcpConnectionPtr &conn,
+                           Buffer *buf,
                            Timestamp time)
 {
   string msg(buf->retrieveAllAsString());
@@ -73,6 +74,8 @@ void EchoServer::onMessage(const TcpConnectionPtr& conn,
 
 void EchoServer::onTimer()
 {
+  // 循环队列，会自动析构掉前面的bucket
+  // 然后会依次析构调bucket中的每个entry
   connectionBuckets_.push_back(Bucket());
   dumpConnectionBuckets();
 }
@@ -82,18 +85,17 @@ void EchoServer::dumpConnectionBuckets() const
   LOG_INFO << "size = " << connectionBuckets_.size();
   int idx = 0;
   for (WeakConnectionList::const_iterator bucketI = connectionBuckets_.begin();
-      bucketI != connectionBuckets_.end();
-      ++bucketI, ++idx)
+       bucketI != connectionBuckets_.end();
+       ++bucketI, ++idx)
   {
-    const Bucket& bucket = *bucketI;
+    const Bucket &bucket = *bucketI;
     printf("[%d] len = %zd : ", idx, bucket.size());
-    for (const auto& it : bucket)
+    for (const auto &it : bucket)
     {
       bool connectionDead = it->weakConn_.expired();
       printf("%p(%ld)%s, ", get_pointer(it), it.use_count(),
-          connectionDead ? " DEAD" : "");
+             connectionDead ? " DEAD" : "");
     }
     puts("");
   }
 }
-
