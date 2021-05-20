@@ -17,47 +17,52 @@
 
 namespace muduo
 {
-namespace net
-{
-
-///
-/// Internal class for timer event.
-///
-class Timer : noncopyable
-{
- public:
-  Timer(TimerCallback cb, Timestamp when, double interval)
-    : callback_(std::move(cb)),
-      expiration_(when),
-      interval_(interval),
-      repeat_(interval > 0.0),
-      sequence_(s_numCreated_.incrementAndGet())
-  { }
-
-  void run() const
+  namespace net
   {
-    callback_();
-  }
 
-  Timestamp expiration() const  { return expiration_; }
-  bool repeat() const { return repeat_; }
-  int64_t sequence() const { return sequence_; }
+    ///
+    /// Internal class for timer event.
+    ///
+    // 定时器
+    class Timer : noncopyable
+    {
+    public:
+      Timer(TimerCallback cb, Timestamp when, double interval)
+          : callback_(std::move(cb)),
+            expiration_(when),
+            interval_(interval),
+            repeat_(interval > 0.0),
+            sequence_(s_numCreated_.incrementAndGet())
+      {
+      }
 
-  void restart(Timestamp now);
+      void run() const
+      {
+        callback_();
+      }
 
-  static int64_t numCreated() { return s_numCreated_.get(); }
+      Timestamp expiration() const { return expiration_; }
+      bool repeat() const { return repeat_; }
+      int64_t sequence() const { return sequence_; }
 
- private:
-  const TimerCallback callback_;
-  Timestamp expiration_;
-  const double interval_;
-  const bool repeat_;
-  const int64_t sequence_;
+      void restart(Timestamp now);
 
-  static AtomicInt64 s_numCreated_;
-};
+      static int64_t numCreated() { return s_numCreated_.get(); }
 
-}  // namespace net
-}  // namespace muduo
+    private:
+      const TimerCallback callback_;
+      // 终止时间
+      Timestamp expiration_;
+      // 用来实现周期任务
+      const double interval_;
+      // 是否重复
+      const bool repeat_;
+      const int64_t sequence_;
 
-#endif  // MUDUO_NET_TIMER_H
+      static AtomicInt64 s_numCreated_;
+    };
+
+  } // namespace net
+} // namespace muduo
+
+#endif // MUDUO_NET_TIMER_H

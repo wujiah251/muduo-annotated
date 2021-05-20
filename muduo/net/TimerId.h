@@ -15,39 +15,39 @@
 
 namespace muduo
 {
-namespace net
-{
-
-class Timer;
-
-///
-/// An opaque identifier, for canceling Timer.
-///
-class TimerId : public muduo::copyable
-{
- public:
-  TimerId()
-    : timer_(NULL),
-      sequence_(0)
+  namespace net
   {
-  }
 
-  TimerId(Timer* timer, int64_t seq)
-    : timer_(timer),
-      sequence_(seq)
-  {
-  }
+    class Timer;
 
-  // default copy-ctor, dtor and assignment are okay
+    ///
+    /// An opaque identifier, for canceling Timer.
+    ///
+    class TimerId : public muduo::copyable
+    {
+    public:
+      TimerId()
+          : timer_(NULL),
+            sequence_(0)
+      {
+      }
 
-  friend class TimerQueue;
+      TimerId(Timer *timer, int64_t seq)
+          : timer_(timer),
+            sequence_(seq)
+      {
+      }
 
- private:
-  Timer* timer_;
-  int64_t sequence_;
-};
+      // default copy-ctor, dtor and assignment are okay
 
-}  // namespace net
-}  // namespace muduo
+      friend class TimerQueue;
 
-#endif  // MUDUO_NET_TIMERID_H
+    private:
+      Timer *timer_;
+      int64_t sequence_;
+    };
+
+  } // namespace net
+} // namespace muduo
+
+#endif // MUDUO_NET_TIMERID_H
