@@ -11,24 +11,24 @@
 
 namespace muduo
 {
+  // 一个同步辅助类，在完成一组正在其他线程中执行的操作之前
+  // 它允许一个或多个线程一直等待。
+  class CountDownLatch : noncopyable
+  {
+  public:
+    explicit CountDownLatch(int count);
 
-class CountDownLatch : noncopyable
-{
- public:
+    void wait();
 
-  explicit CountDownLatch(int count);
+    void countDown();
 
-  void wait();
+    int getCount() const;
 
-  void countDown();
+  private:
+    mutable MutexLock mutex_;
+    Condition condition_ GUARDED_BY(mutex_);
+    int count_ GUARDED_BY(mutex_);
+  };
 
-  int getCount() const;
-
- private:
-  mutable MutexLock mutex_;
-  Condition condition_ GUARDED_BY(mutex_);
-  int count_ GUARDED_BY(mutex_);
-};
-
-}  // namespace muduo
-#endif  // MUDUO_BASE_COUNTDOWNLATCH_H
+} // namespace muduo
+#endif // MUDUO_BASE_COUNTDOWNLATCH_H
