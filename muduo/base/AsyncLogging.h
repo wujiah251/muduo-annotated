@@ -19,59 +19,58 @@
 namespace muduo
 {
 
-class AsyncLogging : noncopyable
-{
- public:
-
-  AsyncLogging(const string& basename,
-               off_t rollSize,
-               int flushInterval = 3);
-
-  ~AsyncLogging()
+  class AsyncLogging : noncopyable
   {
-    if (running_)
+  public:
+    AsyncLogging(const string &basename,
+                 off_t rollSize,
+                 int flushInterval = 3);
+
+    ~AsyncLogging()
     {
-      stop();
+      if (running_)
+      {
+        stop();
+      }
     }
-  }
 
-  void append(const char* logline, int len);
+    void append(const char *logline, int len);
 
-  void start()
-  {
-    running_ = true;
-    thread_.start();
-    latch_.wait();
-  }
+    void start()
+    {
+      running_ = true;
+      thread_.start();
+      latch_.wait();
+    }
 
-  void stop() NO_THREAD_SAFETY_ANALYSIS
-  {
-    running_ = false;
-    cond_.notify();
-    thread_.join();
-  }
+    void stop() NO_THREAD_SAFETY_ANALYSIS
+    {
+      running_ = false;
+      cond_.notify();
+      thread_.join();
+    }
 
- private:
+  private:
+    void threadFunc();
 
-  void threadFunc();
+    typedef muduo::detail::FixedBuffer<muduo::detail::kLargeBuffer> Buffer;
+    typedef std::vector<std::unique_ptr<Buffer>> BufferVector;
+    typedef BufferVector::value_type BufferPtr;
 
-  typedef muduo::detail::FixedBuffer<muduo::detail::kLargeBuffer> Buffer;
-  typedef std::vector<std::unique_ptr<Buffer>> BufferVector;
-  typedef BufferVector::value_type BufferPtr;
+    const int flushInterval_;
+    std::atomic<bool> running_;
+    const string basename_;
+    const off_t rollSize_;
+    muduo::Thread thread_;
+    muduo::CountDownLatch latch_;
+    muduo::MutexLock mutex_;
+    muduo::Condition cond_ GUARDED_BY(mutex_);
+    BufferPtr currentBuffer_ GUARDED_BY(mutex_);
+    BufferPtr nextBuffer_ GUARDED_BY(mutex_);
+    // 缓冲区，由多个buffer组成
+    BufferVector buffers_ GUARDED_BY(mutex_);
+  };
 
-  const int flushInterval_;
-  std::atomic<bool> running_;
-  const string basename_;
-  const off_t rollSize_;
-  muduo::Thread thread_;
-  muduo::CountDownLatch latch_;
-  muduo::MutexLock mutex_;
-  muduo::Condition cond_ GUARDED_BY(mutex_);
-  BufferPtr currentBuffer_ GUARDED_BY(mutex_);
-  BufferPtr nextBuffer_ GUARDED_BY(mutex_);
-  BufferVector buffers_ GUARDED_BY(mutex_);
-};
+} // namespace muduo
 
-}  // namespace muduo
-
-#endif  // MUDUO_BASE_ASYNCLOGGING_H
+#endif // MUDUO_BASE_ASYNCLOGGING_H

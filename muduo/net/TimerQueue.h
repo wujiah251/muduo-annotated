@@ -28,16 +28,11 @@ namespace muduo
     class Timer;
     class TimerId;
 
-    ///
-    /// A best efforts timer queue.
-    /// No guarantee that the callback will be on time.
-    ///
     class TimerQueue : noncopyable
     {
     public:
       explicit TimerQueue(EventLoop *loop);
       ~TimerQueue();
-
       ///
       /// Schedules the callback to be run at given time,
       /// repeats if @c interval > 0.0.
