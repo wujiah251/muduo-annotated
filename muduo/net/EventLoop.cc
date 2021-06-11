@@ -114,6 +114,7 @@ void EventLoop::loop()
     activeChannels_.clear();
     // 获取可用的事件
     pollReturnTime_ = poller_->poll(kPollTimeMs, &activeChannels_);
+
     ++iteration_;
     if (Logger::logLevel() <= Logger::TRACE)
     {
@@ -121,15 +122,22 @@ void EventLoop::loop()
       // 打印可用管道信息
       printActiveChannels();
     }
+
     // TODO sort channel by priority
+
     eventHandling_ = true;
+
     for (Channel *channel : activeChannels_)
     {
       currentActiveChannel_ = channel;
+      // 基于管道做事件回调
       currentActiveChannel_->handleEvent(pollReturnTime_);
     }
+
     currentActiveChannel_ = NULL;
     eventHandling_ = false;
+
+    // TODO:
     doPendingFunctors();
   }
 

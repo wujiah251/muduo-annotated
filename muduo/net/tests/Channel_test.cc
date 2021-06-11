@@ -12,10 +12,10 @@
 using namespace muduo;
 using namespace muduo::net;
 
-void print(const char* msg)
+void print(const char *msg)
 {
-  static std::map<const char*, Timestamp> lasts;
-  Timestamp& last = lasts[msg];
+  static std::map<const char *, Timestamp> lasts;
+  Timestamp &last = lasts[msg];
   Timestamp now = Timestamp::now();
   printf("%s tid %d %s delay %f\n", now.toString().c_str(), CurrentThread::tid(),
          msg, timeDifference(now, last));
@@ -24,26 +24,26 @@ void print(const char* msg)
 
 namespace muduo
 {
-namespace net
-{
-namespace detail
-{
-int createTimerfd();
-void readTimerfd(int timerfd, Timestamp now);
-}
-}
+  namespace net
+  {
+    namespace detail
+    {
+      int createTimerfd();
+      void readTimerfd(int timerfd, Timestamp now);
+    }
+  }
 }
 
 // Use relative time, immunized to wall clock changes.
 class PeriodicTimer
 {
- public:
-  PeriodicTimer(EventLoop* loop, double interval, const TimerCallback& cb)
-    : loop_(loop),
-      timerfd_(muduo::net::detail::createTimerfd()),
-      timerfdChannel_(loop, timerfd_),
-      interval_(interval),
-      cb_(cb)
+public:
+  PeriodicTimer(EventLoop *loop, double interval, const TimerCallback &cb)
+      : loop_(loop),
+        timerfd_(muduo::net::detail::createTimerfd()),
+        timerfdChannel_(loop, timerfd_),
+        interval_(interval),
+        cb_(cb)
   {
     timerfdChannel_.setReadCallback(
         std::bind(&PeriodicTimer::handleRead, this));
@@ -70,7 +70,7 @@ class PeriodicTimer
     ::close(timerfd_);
   }
 
- private:
+private:
   void handleRead()
   {
     loop_->assertInLoopThread();
@@ -93,14 +93,14 @@ class PeriodicTimer
     return ts;
   }
 
-  EventLoop* loop_;
+  EventLoop *loop_;
   const int timerfd_;
   Channel timerfdChannel_;
   const double interval_; // in seconds
   TimerCallback cb_;
 };
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
   LOG_INFO << "pid = " << getpid() << ", tid = " << CurrentThread::tid()
            << " Try adjusting the wall clock, see what happens.";

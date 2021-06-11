@@ -66,9 +66,10 @@ namespace muduo
       EventLoop *loop_;
       const int timerfd_;
       Channel timerfdChannel_;
-      // Timer list sorted by expiration
-      TimerList timers_;
 
+      // timers_和activeTimers_的内容其实相同
+      // 只是前者是按照终止时间排序，后者是按照地址排序
+      TimerList timers_;
       // for cancel()
       ActiveTimerSet activeTimers_;
       bool callingExpiredTimers_; /* atomic */

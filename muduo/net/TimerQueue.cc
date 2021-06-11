@@ -26,7 +26,7 @@ namespace muduo
   {
     namespace detail
     {
-
+      // 创建一个定时器文件描述符
       int createTimerfd()
       {
         int timerfd = ::timerfd_create(CLOCK_MONOTONIC,
@@ -38,6 +38,7 @@ namespace muduo
         return timerfd;
       }
 
+      // 计算距离现在还有多久
       struct timespec howMuchTimeFromNow(Timestamp when)
       {
         int64_t microseconds = when.microSecondsSinceEpoch() - Timestamp::now().microSecondsSinceEpoch();
@@ -53,6 +54,7 @@ namespace muduo
         return ts;
       }
 
+      // 从文件描述符读取
       void readTimerfd(int timerfd, Timestamp now)
       {
         uint64_t howmany;
@@ -64,6 +66,7 @@ namespace muduo
         }
       }
 
+      // 重置时间
       void resetTimerfd(int timerfd, Timestamp expiration)
       {
         // wake up loop by timerfd_settime()
@@ -87,6 +90,7 @@ using namespace muduo;
 using namespace muduo::net;
 using namespace muduo::net::detail;
 
+// 构造函数
 TimerQueue::TimerQueue(EventLoop *loop)
     : loop_(loop),
       timerfd_(createTimerfd()),
@@ -100,6 +104,9 @@ TimerQueue::TimerQueue(EventLoop *loop)
   timerfdChannel_.enableReading();
 }
 
+// 析构函数
+// 移除channel
+// 关闭fd
 TimerQueue::~TimerQueue()
 {
   timerfdChannel_.disableAll();
@@ -112,9 +119,8 @@ TimerQueue::~TimerQueue()
   }
 }
 
-TimerId TimerQueue::addTimer(TimerCallback cb,
-                             Timestamp when,
-                             double interval)
+// 添加定时器
+TimerId TimerQueue::addTimer(TimerCallback cb, Timestamp when, double interval)
 {
   Timer *timer = new Timer(std::move(cb), when, interval);
   loop_->runInLoop(
@@ -122,12 +128,19 @@ TimerId TimerQueue::addTimer(TimerCallback cb,
   return TimerId(timer, timer->sequence());
 }
 
+// 运行canceInloop
+// 主线程就直接运行
+// 其他线程则加入到工作队列中
+
 void TimerQueue::cancel(TimerId timerId)
 {
   loop_->runInLoop(
       std::bind(&TimerQueue::cancelInLoop, this, timerId));
 }
 
+// 添加定时器
+// 如果这个定时器更新了定时器队列的最早时间
+// 重置timerfd_的时间
 void TimerQueue::addTimerInLoop(Timer *timer)
 {
   loop_->assertInLoopThread();
@@ -139,14 +152,17 @@ void TimerQueue::addTimerInLoop(Timer *timer)
   }
 }
 
+// 取消定时器
 void TimerQueue::cancelInLoop(TimerId timerId)
 {
   loop_->assertInLoopThread();
   assert(timers_.size() == activeTimers_.size());
+
   ActiveTimer timer(timerId.timer_, timerId.sequence_);
   ActiveTimerSet::iterator it = activeTimers_.find(timer);
   if (it != activeTimers_.end())
   {
+    //
     size_t n = timers_.erase(Entry(it->first->expiration(), it->first));
     assert(n == 1);
     (void)n;
@@ -155,11 +171,14 @@ void TimerQueue::cancelInLoop(TimerId timerId)
   }
   else if (callingExpiredTimers_)
   {
+    // run中的回调可能会执行cancellinLoop
+    // 而这个时候timers中已经没有了要删除的
     cancelingTimers_.insert(timer);
   }
   assert(timers_.size() == activeTimers_.size());
 }
 
+// timerFd读事件回调函数
 void TimerQueue::handleRead()
 {
   loop_->assertInLoopThread();
@@ -173,10 +192,12 @@ void TimerQueue::handleRead()
   // safe to callback outside critical section
   for (const Entry &it : expired)
   {
+    // callback()
+    // 运行每个定时器的回调函数
     it.second->run();
   }
   callingExpiredTimers_ = false;
-
+  // 重置每个定时器的时间
   reset(expired, now);
 }
 
@@ -185,11 +206,16 @@ std::vector<TimerQueue::Entry> TimerQueue::getExpired(Timestamp now)
   assert(timers_.size() == activeTimers_.size());
   std::vector<Entry> expired;
   Entry sentry(now, reinterpret_cast<Timer *>(UINTPTR_MAX));
+
   TimerList::iterator end = timers_.lower_bound(sentry);
+
   assert(end == timers_.end() || now < end->first);
+  // 将已经到期的定时器复制到expired
   std::copy(timers_.begin(), end, back_inserter(expired));
+  // 删除timers_的这些定时器
   timers_.erase(timers_.begin(), end);
 
+  // 把activeTimers_中的也删除掉
   for (const Entry &it : expired)
   {
     ActiveTimer timer(it.second, it.second->sequence());
@@ -209,6 +235,7 @@ void TimerQueue::reset(const std::vector<Entry> &expired, Timestamp now)
   for (const Entry &it : expired)
   {
     ActiveTimer timer(it.second, it.second->sequence());
+    // 可以重复（周期定时器）并且不是在定时器取消队列里面
     if (it.second->repeat() && cancelingTimers_.find(timer) == cancelingTimers_.end())
     {
       it.second->restart(now);
@@ -233,6 +260,7 @@ void TimerQueue::reset(const std::vector<Entry> &expired, Timestamp now)
 }
 
 // 插入一个定时器
+// 返回值为true，表示定时器链表的最小值已经改变
 bool TimerQueue::insert(Timer *timer)
 {
   loop_->assertInLoopThread();

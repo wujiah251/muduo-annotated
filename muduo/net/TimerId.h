@@ -20,9 +20,7 @@ namespace muduo
 
     class Timer;
 
-    ///
-    /// An opaque identifier, for canceling Timer.
-    ///
+    // 被设计用来取消Timer
     class TimerId : public muduo::copyable
     {
     public:
@@ -31,7 +29,6 @@ namespace muduo
             sequence_(0)
       {
       }
-
       TimerId(Timer *timer, int64_t seq)
           : timer_(timer),
             sequence_(seq)
