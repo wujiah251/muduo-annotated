@@ -244,6 +244,7 @@ void EventLoop::abortNotInLoopThread()
             << ", current thread id = " << CurrentThread::tid();
 }
 
+// 向wakeupFd_写入（对应channel的回调函数为handleRead）
 void EventLoop::wakeup()
 {
   uint64_t one = 1;
@@ -264,6 +265,7 @@ void EventLoop::handleRead()
   }
 }
 
+// 处理其他线程注册的工作队列
 void EventLoop::doPendingFunctors()
 {
   std::vector<Functor> functors;

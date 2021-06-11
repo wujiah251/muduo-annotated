@@ -52,18 +52,22 @@ namespace muduo
 
       int64_t iteration() const { return iteration_; }
 
+      // 在主线程中运行回调函数cb
       void runInLoop(Functor cb);
 
+      // 将回调函数加入工作函数队列
       void queueInLoop(Functor cb);
 
       size_t queueSize() const;
 
+      // 定时任务
       TimerId runAt(Timestamp time, TimerCallback cb);
 
       TimerId runAfter(double delay, TimerCallback cb);
 
       TimerId runEvery(double interval, TimerCallback cb);
 
+      // 取消定时任务
       void cancel(TimerId timerId);
 
       void wakeup();
