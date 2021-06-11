@@ -20,42 +20,42 @@
 
 namespace muduo
 {
-namespace detail
-{
-__thread int t_numOpenedFiles = 0;
-int fdDirFilter(const struct dirent* d)
-{
-  if (::isdigit(d->d_name[0]))
+  namespace detail
   {
-    ++t_numOpenedFiles;
-  }
-  return 0;
-}
+    __thread int t_numOpenedFiles = 0;
+    int fdDirFilter(const struct dirent *d)
+    {
+      if (::isdigit(d->d_name[0]))
+      {
+        ++t_numOpenedFiles;
+      }
+      return 0;
+    }
 
-__thread std::vector<pid_t>* t_pids = NULL;
-int taskDirFilter(const struct dirent* d)
-{
-  if (::isdigit(d->d_name[0]))
-  {
-    t_pids->push_back(atoi(d->d_name));
-  }
-  return 0;
-}
+    __thread std::vector<pid_t> *t_pids = NULL;
+    int taskDirFilter(const struct dirent *d)
+    {
+      if (::isdigit(d->d_name[0]))
+      {
+        t_pids->push_back(atoi(d->d_name));
+      }
+      return 0;
+    }
 
-int scanDir(const char *dirpath, int (*filter)(const struct dirent *))
-{
-  struct dirent** namelist = NULL;
-  int result = ::scandir(dirpath, &namelist, filter, alphasort);
-  assert(namelist == NULL);
-  return result;
-}
+    int scanDir(const char *dirpath, int (*filter)(const struct dirent *))
+    {
+      struct dirent **namelist = NULL;
+      int result = ::scandir(dirpath, &namelist, filter, alphasort);
+      assert(namelist == NULL);
+      return result;
+    }
 
-Timestamp g_startTime = Timestamp::now();
-// assume those won't change during the life time of a process.
-int g_clockTicks = static_cast<int>(::sysconf(_SC_CLK_TCK));
-int g_pageSize = static_cast<int>(::sysconf(_SC_PAGE_SIZE));
-}  // namespace detail
-}  // namespace muduo
+    Timestamp g_startTime = Timestamp::now();
+    // assume those won't change during the life time of a process.
+    int g_clockTicks = static_cast<int>(::sysconf(_SC_CLK_TCK));
+    int g_pageSize = static_cast<int>(::sysconf(_SC_PAGE_SIZE));
+  } // namespace detail
+} // namespace muduo
 
 using namespace muduo;
 using namespace muduo::detail;
@@ -80,9 +80,9 @@ uid_t ProcessInfo::uid()
 string ProcessInfo::username()
 {
   struct passwd pwd;
-  struct passwd* result = NULL;
+  struct passwd *result = NULL;
   char buf[8192];
-  const char* name = "unknownuser";
+  const char *name = "unknownuser";
 
   getpwuid_r(uid(), &pwd, buf, sizeof buf, &result);
   if (result)
@@ -128,7 +128,7 @@ string ProcessInfo::hostname()
   char buf[256];
   if (::gethostname(buf, sizeof buf) == 0)
   {
-    buf[sizeof(buf)-1] = '\0';
+    buf[sizeof(buf) - 1] = '\0';
     return buf;
   }
   else
@@ -142,14 +142,14 @@ string ProcessInfo::procname()
   return procname(procStat()).as_string();
 }
 
-StringPiece ProcessInfo::procname(const string& stat)
+StringPiece ProcessInfo::procname(const string &stat)
 {
   StringPiece name;
   size_t lp = stat.find('(');
   size_t rp = stat.rfind(')');
   if (lp != string::npos && rp != string::npos && lp < rp)
   {
-    name.set(stat.data()+lp+1, static_cast<int>(rp-lp-1));
+    name.set(stat.data() + lp + 1, static_cast<int>(rp - lp - 1));
   }
   return name;
 }
@@ -243,4 +243,3 @@ std::vector<pid_t> ProcessInfo::threads()
   std::sort(result.begin(), result.end());
   return result;
 }
-
