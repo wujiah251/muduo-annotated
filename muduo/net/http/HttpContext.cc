@@ -13,18 +13,18 @@
 using namespace muduo;
 using namespace muduo::net;
 
-bool HttpContext::processRequestLine(const char* begin, const char* end)
+bool HttpContext::processRequestLine(const char *begin, const char *end)
 {
   bool succeed = false;
-  const char* start = begin;
-  const char* space = std::find(start, end, ' ');
+  const char *start = begin;
+  const char *space = std::find(start, end, ' ');
   if (space != end && request_.setMethod(start, space))
   {
-    start = space+1;
+    start = space + 1;
     space = std::find(start, end, ' ');
     if (space != end)
     {
-      const char* question = std::find(start, space, '?');
+      const char *question = std::find(start, space, '?');
       if (question != space)
       {
         request_.setPath(start, question);
@@ -34,15 +34,15 @@ bool HttpContext::processRequestLine(const char* begin, const char* end)
       {
         request_.setPath(start, space);
       }
-      start = space+1;
-      succeed = end-start == 8 && std::equal(start, end-1, "HTTP/1.");
+      start = space + 1;
+      succeed = end - start == 8 && std::equal(start, end - 1, "HTTP/1.");
       if (succeed)
       {
-        if (*(end-1) == '1')
+        if (*(end - 1) == '1')
         {
           request_.setVersion(HttpRequest::kHttp11);
         }
-        else if (*(end-1) == '0')
+        else if (*(end - 1) == '0')
         {
           request_.setVersion(HttpRequest::kHttp10);
         }
@@ -57,7 +57,8 @@ bool HttpContext::processRequestLine(const char* begin, const char* end)
 }
 
 // return false if any error
-bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
+// 解析请求，包括请求行，首部行，实体
+bool HttpContext::parseRequest(Buffer *buf, Timestamp receiveTime)
 {
   bool ok = true;
   bool hasMore = true;
@@ -65,7 +66,7 @@ bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
   {
     if (state_ == kExpectRequestLine)
     {
-      const char* crlf = buf->findCRLF();
+      const char *crlf = buf->findCRLF();
       if (crlf)
       {
         ok = processRequestLine(buf->peek(), crlf);
@@ -87,10 +88,10 @@ bool HttpContext::parseRequest(Buffer* buf, Timestamp receiveTime)
     }
     else if (state_ == kExpectHeaders)
     {
-      const char* crlf = buf->findCRLF();
+      const char *crlf = buf->findCRLF();
       if (crlf)
       {
-        const char* colon = std::find(buf->peek(), crlf, ':');
+        const char *colon = std::find(buf->peek(), crlf, ':');
         if (colon != crlf)
         {
           request_.addHeader(buf->peek(), colon, crlf);

@@ -19,28 +19,28 @@ using namespace muduo::net;
 
 namespace muduo
 {
-namespace net
-{
-namespace detail
-{
+  namespace net
+  {
+    namespace detail
+    {
 
-void defaultHttpCallback(const HttpRequest&, HttpResponse* resp)
-{
-  resp->setStatusCode(HttpResponse::k404NotFound);
-  resp->setStatusMessage("Not Found");
-  resp->setCloseConnection(true);
-}
+      void defaultHttpCallback(const HttpRequest &, HttpResponse *resp)
+      {
+        resp->setStatusCode(HttpResponse::k404NotFound);
+        resp->setStatusMessage("Not Found");
+        resp->setCloseConnection(true);
+      }
 
-}  // namespace detail
-}  // namespace net
-}  // namespace muduo
+    } // namespace detail
+  }   // namespace net
+} // namespace muduo
 
-HttpServer::HttpServer(EventLoop* loop,
-                       const InetAddress& listenAddr,
-                       const string& name,
+HttpServer::HttpServer(EventLoop *loop,
+                       const InetAddress &listenAddr,
+                       const string &name,
                        TcpServer::Option option)
-  : server_(loop, listenAddr, name, option),
-    httpCallback_(detail::defaultHttpCallback)
+    : server_(loop, listenAddr, name, option),
+      httpCallback_(detail::defaultHttpCallback)
 {
   server_.setConnectionCallback(
       std::bind(&HttpServer::onConnection, this, _1));
@@ -51,11 +51,11 @@ HttpServer::HttpServer(EventLoop* loop,
 void HttpServer::start()
 {
   LOG_WARN << "HttpServer[" << server_.name()
-    << "] starts listening on " << server_.ipPort();
+           << "] starts listening on " << server_.ipPort();
   server_.start();
 }
 
-void HttpServer::onConnection(const TcpConnectionPtr& conn)
+void HttpServer::onConnection(const TcpConnectionPtr &conn)
 {
   if (conn->connected())
   {
@@ -63,11 +63,11 @@ void HttpServer::onConnection(const TcpConnectionPtr& conn)
   }
 }
 
-void HttpServer::onMessage(const TcpConnectionPtr& conn,
-                           Buffer* buf,
+void HttpServer::onMessage(const TcpConnectionPtr &conn,
+                           Buffer *buf,
                            Timestamp receiveTime)
 {
-  HttpContext* context = boost::any_cast<HttpContext>(conn->getMutableContext());
+  HttpContext *context = boost::any_cast<HttpContext>(conn->getMutableContext());
 
   if (!context->parseRequest(buf, receiveTime))
   {
@@ -82,13 +82,15 @@ void HttpServer::onMessage(const TcpConnectionPtr& conn,
   }
 }
 
-void HttpServer::onRequest(const TcpConnectionPtr& conn, const HttpRequest& req)
+void HttpServer::onRequest(const TcpConnectionPtr &conn, const HttpRequest &req)
 {
-  const string& connection = req.getHeader("Connection");
+  const string &connection = req.getHeader("Connection");
   bool close = connection == "close" ||
-    (req.getVersion() == HttpRequest::kHttp10 && connection != "Keep-Alive");
+               (req.getVersion() == HttpRequest::kHttp10 && connection != "Keep-Alive");
   HttpResponse response(close);
+  // http回调函数，httpCallback_中应该填充业务逻辑
   httpCallback_(req, &response);
+
   Buffer buf;
   response.appendToBuffer(&buf);
   conn->send(&buf);
@@ -97,4 +99,3 @@ void HttpServer::onRequest(const TcpConnectionPtr& conn, const HttpRequest& req)
     conn->shutdown();
   }
 }
-

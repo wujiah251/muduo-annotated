@@ -18,62 +18,82 @@
 
 namespace muduo
 {
-namespace net
-{
-
-class Buffer;
-class HttpResponse : public muduo::copyable
-{
- public:
-  enum HttpStatusCode
+  namespace net
   {
-    kUnknown,
-    k200Ok = 200,
-    k301MovedPermanently = 301,
-    k400BadRequest = 400,
-    k404NotFound = 404,
-  };
 
-  explicit HttpResponse(bool close)
-    : statusCode_(kUnknown),
-      closeConnection_(close)
-  {
-  }
+    class Buffer;
+    class HttpResponse : public muduo::copyable
+    {
+    public:
+      // http状态码
+      enum HttpStatusCode
+      {
+        kUnknown,
+        k200Ok = 200,
+        k301MovedPermanently = 301,
+        k400BadRequest = 400,
+        k404NotFound = 404,
+      };
 
-  void setStatusCode(HttpStatusCode code)
-  { statusCode_ = code; }
+      // http状态响应
+      explicit HttpResponse(bool close)
+          : statusCode_(kUnknown),
+            closeConnection_(close)
+      {
+      }
 
-  void setStatusMessage(const string& message)
-  { statusMessage_ = message; }
+      // 设置状态码
+      void setStatusCode(HttpStatusCode code)
+      {
+        statusCode_ = code;
+      }
 
-  void setCloseConnection(bool on)
-  { closeConnection_ = on; }
+      // 设置状态码消息
+      void setStatusMessage(const string &message)
+      {
+        statusMessage_ = message;
+      }
 
-  bool closeConnection() const
-  { return closeConnection_; }
+      void setCloseConnection(bool on)
+      {
+        closeConnection_ = on;
+      }
 
-  void setContentType(const string& contentType)
-  { addHeader("Content-Type", contentType); }
+      bool closeConnection() const
+      {
+        return closeConnection_;
+      }
 
-  // FIXME: replace string with StringPiece
-  void addHeader(const string& key, const string& value)
-  { headers_[key] = value; }
+      // 设置content-type
+      void setContentType(const string &contentType)
+      {
+        addHeader("Content-Type", contentType);
+      }
 
-  void setBody(const string& body)
-  { body_ = body; }
+      // 添加首部行
+      // FIXME: replace string with StringPiece
+      void addHeader(const string &key, const string &value)
+      {
+        headers_[key] = value;
+      }
 
-  void appendToBuffer(Buffer* output) const;
+      void setBody(const string &body)
+      {
+        body_ = body;
+      }
 
- private:
-  std::map<string, string> headers_;
-  HttpStatusCode statusCode_;
-  // FIXME: add http version
-  string statusMessage_;
-  bool closeConnection_;
-  string body_;
-};
+      void appendToBuffer(Buffer *output) const;
 
-}  // namespace net
-}  // namespace muduo
+    private:
+      std::map<string, string> headers_;
+      HttpStatusCode statusCode_;
+      // FIXME: add http version
+      string statusMessage_;
+      bool closeConnection_;
+      string body_;
+    };
 
-#endif  // MUDUO_NET_HTTP_HTTPRESPONSE_H
+  } // namespace net
+} // namespace muduo
+
+#endif // MUDUO_NET_HTTP_HTTPRESPONSE_H
