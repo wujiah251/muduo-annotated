@@ -1,11 +1,3 @@
-// Copyright 2010, Shuo Chen.  All rights reserved.
-// http://code.google.com/p/muduo/
-//
-// Use of this source code is governed by a BSD-style license
-// that can be found in the License file.
-
-// Author: Shuo Chen (chenshuo at chenshuo dot com)
-
 #include "muduo/net/TcpConnection.h"
 
 #include "muduo/base/Logging.h"
@@ -20,7 +12,8 @@
 using namespace muduo;
 using namespace muduo::net;
 
-void muduo::net::defaultConnectionCallback(const TcpConnectionPtr& conn)
+// 默认的连接回调函数
+void muduo::net::defaultConnectionCallback(const TcpConnectionPtr &conn)
 {
   LOG_TRACE << conn->localAddress().toIpPort() << " -> "
             << conn->peerAddress().toIpPort() << " is "
@@ -28,27 +21,28 @@ void muduo::net::defaultConnectionCallback(const TcpConnectionPtr& conn)
   // do not call conn->forceClose(), because some users want to register message callback only.
 }
 
-void muduo::net::defaultMessageCallback(const TcpConnectionPtr&,
-                                        Buffer* buf,
+// 默认的消息回调函数
+void muduo::net::defaultMessageCallback(const TcpConnectionPtr &,
+                                        Buffer *buf,
                                         Timestamp)
 {
   buf->retrieveAll();
 }
 
-TcpConnection::TcpConnection(EventLoop* loop,
-                             const string& nameArg,
+TcpConnection::TcpConnection(EventLoop *loop,
+                             const string &nameArg,
                              int sockfd,
-                             const InetAddress& localAddr,
-                             const InetAddress& peerAddr)
-  : loop_(CHECK_NOTNULL(loop)),
-    name_(nameArg),
-    state_(kConnecting),
-    reading_(true),
-    socket_(new Socket(sockfd)),
-    channel_(new Channel(loop, sockfd)),
-    localAddr_(localAddr),
-    peerAddr_(peerAddr),
-    highWaterMark_(64*1024*1024)
+                             const InetAddress &localAddr,
+                             const InetAddress &peerAddr)
+    : loop_(CHECK_NOTNULL(loop)),
+      name_(nameArg),
+      state_(kConnecting),
+      reading_(true),
+      socket_(new Socket(sockfd)),
+      channel_(new Channel(loop, sockfd)),
+      localAddr_(localAddr),
+      peerAddr_(peerAddr),
+      highWaterMark_(64 * 1024 * 1024)
 {
   channel_->setReadCallback(
       std::bind(&TcpConnection::handleRead, this, _1));
@@ -58,24 +52,27 @@ TcpConnection::TcpConnection(EventLoop* loop,
       std::bind(&TcpConnection::handleClose, this));
   channel_->setErrorCallback(
       std::bind(&TcpConnection::handleError, this));
-  LOG_DEBUG << "TcpConnection::ctor[" <<  name_ << "] at " << this
+  LOG_DEBUG << "TcpConnection::ctor[" << name_ << "] at " << this
             << " fd=" << sockfd;
   socket_->setKeepAlive(true);
 }
 
+// 析构函数
 TcpConnection::~TcpConnection()
 {
-  LOG_DEBUG << "TcpConnection::dtor[" <<  name_ << "] at " << this
+  LOG_DEBUG << "TcpConnection::dtor[" << name_ << "] at " << this
             << " fd=" << channel_->fd()
             << " state=" << stateToString();
   assert(state_ == kDisconnected);
 }
 
-bool TcpConnection::getTcpInfo(struct tcp_info* tcpi) const
+// 获取套接字的信息
+bool TcpConnection::getTcpInfo(struct tcp_info *tcpi) const
 {
   return socket_->getTcpInfo(tcpi);
 }
 
+// 获取套接字信息，字符拆格式
 string TcpConnection::getTcpInfoString() const
 {
   char buf[1024];
@@ -84,12 +81,14 @@ string TcpConnection::getTcpInfoString() const
   return buf;
 }
 
-void TcpConnection::send(const void* data, int len)
+// 发送消息
+void TcpConnection::send(const void *data, int len)
 {
-  send(StringPiece(static_cast<const char*>(data), len));
+  send(StringPiece(static_cast<const char *>(data), len));
 }
 
-void TcpConnection::send(const StringPiece& message)
+// 发送消息
+void TcpConnection::send(const StringPiece &message)
 {
   if (state_ == kConnected)
   {
@@ -99,18 +98,18 @@ void TcpConnection::send(const StringPiece& message)
     }
     else
     {
-      void (TcpConnection::*fp)(const StringPiece& message) = &TcpConnection::sendInLoop;
+      void (TcpConnection::*fp)(const StringPiece &message) = &TcpConnection::sendInLoop;
       loop_->runInLoop(
           std::bind(fp,
-                    this,     // FIXME
+                    this, // FIXME
                     message.as_string()));
-                    //std::forward<string>(message)));
+      //std::forward<string>(message)));
     }
   }
 }
 
 // FIXME efficiency!!!
-void TcpConnection::send(Buffer* buf)
+void TcpConnection::send(Buffer *buf)
 {
   if (state_ == kConnected)
   {
@@ -121,22 +120,23 @@ void TcpConnection::send(Buffer* buf)
     }
     else
     {
-      void (TcpConnection::*fp)(const StringPiece& message) = &TcpConnection::sendInLoop;
+      void (TcpConnection::*fp)(const StringPiece &message) = &TcpConnection::sendInLoop;
       loop_->runInLoop(
           std::bind(fp,
-                    this,     // FIXME
+                    this, // FIXME
                     buf->retrieveAllAsString()));
-                    //std::forward<string>(message)));
+      //std::forward<string>(message)));
     }
   }
 }
 
-void TcpConnection::sendInLoop(const StringPiece& message)
+// 在主循环中发送消息
+void TcpConnection::sendInLoop(const StringPiece &message)
 {
   sendInLoop(message.data(), message.size());
 }
 
-void TcpConnection::sendInLoop(const void* data, size_t len)
+void TcpConnection::sendInLoop(const void *data, size_t len)
 {
   loop_->assertInLoopThread();
   ssize_t nwrote = 0;
@@ -177,13 +177,11 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
   if (!faultError && remaining > 0)
   {
     size_t oldLen = outputBuffer_.readableBytes();
-    if (oldLen + remaining >= highWaterMark_
-        && oldLen < highWaterMark_
-        && highWaterMarkCallback_)
+    if (oldLen + remaining >= highWaterMark_ && oldLen < highWaterMark_ && highWaterMarkCallback_)
     {
       loop_->queueInLoop(std::bind(highWaterMarkCallback_, shared_from_this(), oldLen + remaining));
     }
-    outputBuffer_.append(static_cast<const char*>(data)+nwrote, remaining);
+    outputBuffer_.append(static_cast<const char *>(data) + nwrote, remaining);
     if (!channel_->isWriting())
     {
       channel_->enableWriting();
@@ -191,6 +189,7 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
   }
 }
 
+// 关闭连接
 void TcpConnection::shutdown()
 {
   // FIXME: use compare and swap
@@ -254,7 +253,7 @@ void TcpConnection::forceCloseWithDelay(double seconds)
     loop_->runAfter(
         seconds,
         makeWeakCallback(shared_from_this(),
-                         &TcpConnection::forceClose));  // not forceCloseInLoop to avoid race condition
+                         &TcpConnection::forceClose)); // not forceCloseInLoop to avoid race condition
   }
 }
 
@@ -268,20 +267,20 @@ void TcpConnection::forceCloseInLoop()
   }
 }
 
-const char* TcpConnection::stateToString() const
+const char *TcpConnection::stateToString() const
 {
   switch (state_)
   {
-    case kDisconnected:
-      return "kDisconnected";
-    case kConnecting:
-      return "kConnecting";
-    case kConnected:
-      return "kConnected";
-    case kDisconnecting:
-      return "kDisconnecting";
-    default:
-      return "unknown state";
+  case kDisconnected:
+    return "kDisconnected";
+  case kConnecting:
+    return "kConnecting";
+  case kConnected:
+    return "kConnected";
+  case kDisconnecting:
+    return "kDisconnecting";
+  default:
+    return "unknown state";
   }
 }
 
@@ -426,4 +425,3 @@ void TcpConnection::handleError()
   LOG_ERROR << "TcpConnection::handleError [" << name_
             << "] - SO_ERROR = " << err << " " << strerror_tl(err);
 }
-

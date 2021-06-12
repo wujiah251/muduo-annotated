@@ -64,6 +64,7 @@ void Acceptor::handleRead()
     // LOG_TRACE << "Accepts of " << hostport;
     if (newConnectionCallback_)
     {
+      // 新连接回调
       newConnectionCallback_(connfd, peerAddr);
     }
     else
