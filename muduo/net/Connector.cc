@@ -37,12 +37,15 @@ Connector::~Connector()
   assert(!channel_);
 }
 
+// 启动connector
+// 运行startInLoop
 void Connector::start()
 {
   connect_ = true;
   loop_->runInLoop(std::bind(&Connector::startInLoop, this)); // FIXME: unsafe
 }
 
+// 工作：和服务端地址建立连接
 void Connector::startInLoop()
 {
   loop_->assertInLoopThread();
@@ -89,6 +92,7 @@ void Connector::connect()
   case EINPROGRESS:
   case EINTR:
   case EISCONN:
+    // 连接成功
     connecting(sockfd);
     break;
 
@@ -129,7 +133,9 @@ void Connector::restart()
   startInLoop();
 }
 
-// 编程连接中的状态
+// sock已经连接成功，设置channel
+// 设置写回调函数
+// 设置异常回调函数
 void Connector::connecting(int sockfd)
 {
   setState(kConnecting);
@@ -144,6 +150,8 @@ void Connector::connecting(int sockfd)
   channel_->enableWriting();
 }
 
+// 不再监听任何时间
+// 释放resetChannel资源
 int Connector::removeAndResetChannel()
 {
   // 不再监听任何事件类型
@@ -151,7 +159,6 @@ int Connector::removeAndResetChannel()
   // 从poller中移除这个channel
   channel_->remove();
   int sockfd = channel_->fd();
-  // Can't reset channel_ here, because we are inside Channel::handleEvent
   // 释放这个channel的资源
   loop_->queueInLoop(std::bind(&Connector::resetChannel, this)); // FIXME: unsafe
   return sockfd;
